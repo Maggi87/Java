@@ -1,0 +1,138 @@
+function getInstituteDetails(iid)
+{
+	$('.idea,.sig,.course,.mentor,.sme,.profiles,.view,.NRINS,.three').hide();
+	$('.view-data,.RINS,.lone,.lfour').show();
+	
+	var id =iid;
+	
+	var url = "UniversityGetInstituteProfile";
+	var request= $.ajax({
+		type: "GET",
+		url: url,
+		data:{iid:id},
+		dataType:"json"
+	});
+	
+	request.done(function(data, textStatus, jqXHR){
+		
+		 $(".iname").text(data[0].getIname);	
+		 
+		 $(".name").text(data[0].getPname);
+		 $(".mobile").text(data[0].getPmobile);
+		 $(".email").text(data[0].getPemail);
+		 $(".adhar").text(data[0].getPadhar);
+		 
+		 $(".cname").text(data[0].getCname);
+		 $(".cmobile").text(data[0].getCmobile);
+		 $(".cemail").text(data[0].getCemail);
+		 $(".cadhar").text(data[0].getCadhar);
+		 
+		 $(".inodept").text(data[0].getNoDept);
+		 $(".inofaculty").text(data[0].getNoFacul);
+		 
+		 $(".address").text(data[0].getAddress);
+		 $(".city").text(data[0].getCity);
+		 $(".pincode").text(data[0].getPincode);
+		
+	});			 
+	request.fail(function(jqXHR, textStatus, errorThrown){
+		alert("Oops something went wrong. Check your internet connection and retry after some time. If issue persists, kindly contact support.");
+	});
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+package com.university;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+/**
+ * Servlet implementation class UniversityGetInstituteProfile
+ */
+@WebServlet("/UniversityGetInstituteProfile")
+public class UniversityGetInstituteProfile extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+	
+	JSONObject jsonRecord = null;
+	JSONArray jsonArray= null;
+    
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.setContentType("text/html");
+		PrintWriter out =response.getWriter();
+		
+		long instuid = Long.parseLong(request.getParameter("iid"));
+		jsonArray = new JSONArray();
+		jsonArray = UniversityAPI.getInstituteDetails(instuid);
+		out.print(jsonArray);
+	}
+
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+static Connection con = null;
+static PreparedStatement pst = null;
+static ResultSet rst = null;
+public static JSONArray getInstituteDetails(long id)
+	{
+		con = Dao.getConnection();
+		
+		JSONObject jsonRecord = null;
+		JSONArray jsonArray = null;
+		
+		try
+		{
+			jsonArray = new JSONArray();
+			String query = "select * from instituteregi where instituteId=?";
+			pst = con.prepareStatement(query);
+			pst.setLong(1, id);
+			rst = pst.executeQuery();
+			
+			while(rst.next())
+			{
+				jsonRecord = new JSONObject();
+				
+				jsonRecord.put("getIname", rst.getString("institutename"));
+				
+				jsonRecord.put("getPname", rst.getString("instituteprinciplename"));
+				jsonRecord.put("getPmobile", rst.getString("mobilenumber"));
+				jsonRecord.put("getPemail", rst.getString("emailid"));
+				jsonRecord.put("getPadhar", rst.getString("principleadharcard"));
+				
+				jsonRecord.put("getCname", rst.getString("coordinatorname"));
+				jsonRecord.put("getCmobile", rst.getString("coordinatormobilenumber"));
+				jsonRecord.put("getCemail", rst.getString("coemailid"));
+				jsonRecord.put("getCadhar", rst.getString("coordinatoradharcardnumber"));
+				
+				jsonRecord.put("getNoDept", rst.getString("numberofdepartment"));
+				jsonRecord.put("getNoFacul", rst.getString("facultymembernumber"));
+				
+				jsonRecord.put("getAddress", rst.getString("instituteaddress"));
+				jsonRecord.put("getCity", rst.getString("city"));
+				jsonRecord.put("getPincode", rst.getInt("pincode"));
+				
+				jsonArray.put(jsonRecord);
+			}
+		}
+		catch(SQLException e)
+		{
+			throw new RuntimeException("Jugaadfunda.SQLRuntimeException");
+		}
+		catch(JSONException e)
+		{
+			throw new RuntimeException("Jugaadfunda.JSONException");
+		}
+		finally
+		{
+			Dao.cleanUp(con, pst, rst);  
+		}
+		return jsonArray;
+	}

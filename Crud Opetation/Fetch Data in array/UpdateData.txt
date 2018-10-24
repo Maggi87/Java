@@ -1,0 +1,110 @@
+function EditDeptDetails()
+{
+   var formData=
+   {		
+	   'postUid'    : $("#universityId").val(),
+       'postDno'    : $("#dno").val(),
+       'postDname'  : $("#dname").val(),   
+       'postHname'  : $("#hname").val(),
+       'postNostud' : $("#nostudent").val(),
+       'postDescrip': $("#descrition").val()
+   };
+	
+	var url = "UniversityUpdateDepartment";
+	
+	var request= $.ajax
+	({ 
+		 type: "POST",
+		 url: url,
+		 data :formData,
+		 datatype:"json"
+	});
+	
+	request.done(function(data, textStatus, jqXHR)
+	{
+		var p=JSON.parse(data);
+	 	$('#message-dep').text(p.flag);
+		 	getDepartment();
+		 	setTimeout(function(){
+		 		$('#myModal').modal('toggle');
+		 		$('#message-dep').text(" ");
+	 		}, 2000);
+	});			 
+	request.fail(function(jqXHR, textStatus, errorThrown)
+	{
+		 alert("Oops something went wrong. Check your internet connection and retry after some time. If issue persists, kindly contact support.");
+	});
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+package com.university;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONObject;
+
+@WebServlet("/UniversityUpdateDepartment")
+public class UniversityUpdateDepartment extends HttpServlet {
+	
+	private static final long serialVersionUID = 1L;
+	private PrintWriter pw = null;
+	private JSONObject jsonObject  = null;
+       
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		
+		pw = response.getWriter();
+		
+		long   puid     = Long.parseLong(request.getParameter("postUid"));
+		int    pdid     = Integer.parseInt(request.getParameter("postDno"));
+		String pdname   = request.getParameter("postDname");
+		String phname   = request.getParameter("postHname");
+		String pnostud  = request.getParameter("postNostud");
+		String pdescrip = request.getParameter("postDescrip");
+		
+		jsonObject = UniversityAPI.updateDepartment(puid,pdid,pdname,phname,pnostud,pdescrip);
+		pw.println(jsonObject);
+	}
+
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+public static JSONObject updateDepartment(long uid, int did, String dname, String hname, String nostud, String description)
+{
+	JSONObject obj = new JSONObject();
+	con = Dao.getConnection();
+	String query = "UPDATE university_dep set dname=?, hobname=?, nostudent=?, description=? where did=? and uid=?";
+	try
+	{
+		pst = con.prepareStatement(query);
+		pst.setString(1, dname);
+		pst.setString(2, hname);
+		pst.setString(3, nostud);
+		pst.setString(4, description);
+		pst.setInt(5, did);
+		pst.setLong(6, uid);
+		
+		int result = pst.executeUpdate();
+		
+		if(result ==1)
+		{
+			obj.put("flag", "Updated successfully.");
+		}
+		else 
+		{
+			obj.put("flag", "Issue in Updating Data.");
+		}
+	}
+	catch (SQLException | JSONException e) 
+	{
+		e.printStackTrace();
+	}
+	return obj;
+}
+	
+

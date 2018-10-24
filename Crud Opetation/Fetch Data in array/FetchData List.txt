@@ -1,0 +1,136 @@
+function getinstitutelist()
+{
+	var url = "UniversityGetInstitute";
+	
+	var request = $.ajax({
+		url: url,
+		data:{uid:id},
+		dataType:"json"
+	});
+	request.done(function(data, textStatus, jqXHR)
+	{
+		
+		var output="";
+		for(var i=0;i<data.length;i++)
+		{
+			if(data[i].getid != 0)
+			{								
+				output+="<tr>";
+					output+="<td><a onclick=' getInstituteDetails("+data[i].getid+");'>"+data[i].getname+"</a></td>";
+					output+="<td><a onclick=' getInstituteDetails("+data[i].getid+");'><i class='fa fa-eye' aria-hidden='true'></i></a></td>";
+			    output+="</tr>"
+			}
+		}
+		$('#list').html(output);
+	 });
+	 request.fail(function(jqXHR, textStatus, errorThrown)
+	 {
+		 alert("Oops something went wrong. Check your internet connection and retry after some time. If issue persists, kindly contact support.");
+	 });	
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------
+package com.university;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+/**
+ * Servlet implementation class UniversityGetInstitute
+ */
+@WebServlet("/UniversityGetInstitute")
+public class UniversityGetInstitute extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    
+	private ArrayList<UniversityDeptPojo> universityPojo = null;
+	private JSONArray jsonArray = null;
+	private PrintWriter pw;
+    
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.setContentType("html/text");
+		jsonArray = new JSONArray();
+		pw = response.getWriter();
+		
+		long uid = Long.parseLong(request.getParameter("uid"));
+		universityPojo = UniversityAPI.getInstituteList(uid);
+		jsonArray = getJsonDepList(universityPojo);
+		pw.println(jsonArray);
+		
+	}
+	
+	JSONArray getJsonDepList (ArrayList<UniversityDeptPojo> universityPojo)
+	{
+		JSONObject jsonObject = null;
+		
+		try
+		{
+			if(!universityPojo.isEmpty())
+			{
+				for(UniversityDeptPojo u: universityPojo)
+				{
+					jsonObject = new JSONObject();
+					jsonObject.put("getid", u.getId());
+					jsonObject.put("getname", u.getName());
+					jsonArray.put(jsonObject);
+				}
+			}
+			else
+			{
+				jsonObject = new JSONObject();
+				jsonObject.put("getid", "0");
+				jsonArray.put(jsonObject);
+			}
+		}
+		catch (JSONException e) 
+		{
+			throw new RuntimeException("Jugaadfunda.JSONException");
+		}
+		return jsonArray;
+	}
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+private static Connection con = null;
+private static PreparedStatement pst = null;
+private static ResultSet rst = null;		
+public static ArrayList<UniversityDeptPojo> getInstituteList(long uid)
+{
+	ArrayList<UniversityDeptPojo> uniList = new ArrayList<>(); 
+	UniversityDeptPojo universityPojo = null;
+	
+	con = Dao.getConnection();
+	String query = "SELECT i.instituteId,i.institutename FROM instituteregi i JOIN institute_uni iu ON i.instituteId = iu.instituteid JOIN university u ON iu.uniid = u.uid WHERE iu.uniid = ? and i.registrationstatus = ?;";
+	try
+	{
+		pst = con.prepareStatement(query);
+		pst.setLong(1, uid);
+		pst.setString(2, "Approved");
+		rst = pst.executeQuery();
+		
+		while(rst.next())
+		{
+			int getIid = rst.getInt("instituteId");
+			String getIname = rst.getString("institutename");
+			
+			universityPojo = new UniversityDeptPojo(getIid,getIname);
+			uniList.add(universityPojo);
+		}
+	}
+	catch (SQLException e) {
+		throw new RuntimeException("Jugaadfunda.SQLRuntimeException");
+	}
+	finally {
+		Dao.cleanUp(con, pst, rst);
+	}
+	return uniList;
+}
