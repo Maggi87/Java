@@ -1,0 +1,97 @@
+function IdeaList()
+{
+	var url = "UniversityGetInstitute";
+	
+	var request = $.ajax({
+		url: url,
+		data:{uid:id},
+		dataType:"json"
+	});
+	request.done(function(data, textStatus, jqXHR)
+	{
+		
+		var output="";
+		for(var i=0;i<data.length;i++)
+		{
+			if(data[i].getid != 0)
+			{								
+				output+="<tr>";
+					output+="<td><a onclick=' getInstituteDetails("+data[i].getid+");'>"+data[i].getname+"</a></td>";
+					output+="<td><a onclick=' getInstituteDetails("+data[i].getid+");'><i class='fa fa-eye' aria-hidden='true'></i></a></td>";
+			    output+="</tr>"
+			}
+		}
+		$('#idoflistidea').html(output);
+	 });
+	 request.fail(function(jqXHR, textStatus, errorThrown)
+	 {
+		 alert("Oops something went wrong. Check your internet connection and retry after some time. If issue persists, kindly contact support.");
+	 });	
+}
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
+package com.user.dashboard;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.json.JSONArray;
+
+//@WebServlet("/List_ofIdea")
+public class List_ofIdea extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	JSONArray array = null;
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+
+		long userid = Long.parseLong(request.getParameter("userid"));
+		array = UserDashboardDao.listofideas(userid);
+		out.println(array);
+
+	}
+}
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
+public static JSONArray listofideas(long userid) 
+{
+	JSONObject jsonRecord = null;
+	JSONArray array = null;
+	con = Dao.getConnection();
+	try {
+
+		array = new JSONArray();
+		String query1 = "SELECT* FROM ideasubmit WHERE userId=? AND deletestatus != 1 AND statusofidea !='Not yet Elevate'";
+		pst = con.prepareStatement(query1);
+		pst.setLong(1, userid);
+		rs = pst.executeQuery();
+		if (!rs.equals("null")) {
+			while (rs.next()) {
+				jsonRecord = new JSONObject();
+				jsonRecord.put("ideaid", rs.getLong("ideaid"));
+				jsonRecord.put("ideatitle", rs.getString("titlename"));
+				jsonRecord.put("ideadate", rs.getString("idearegidate"));
+				String status = UserDashboardDao.getElevateStage(rs.getLong("ideaid"));
+				jsonRecord.put("ideastatus", status);
+				array.put(jsonRecord);
+			}
+		} else {
+			jsonRecord = new JSONObject();
+			jsonRecord.put("ideaid", "0");
+			array.put(jsonRecord);
+		}
+	}
+
+	catch (SQLException e) {
+		throw new RuntimeException("Jugaadfunda.SQLRuntimeException");
+	} catch (JSONException e) {
+		throw new RuntimeException("Jugaadfunda.JSONException");
+	} finally {
+		Dao.cleanUp(con, pst, rs);
+	}
+	return array;
+}
